@@ -1,0 +1,295 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "anthropic/claude-sonnet-4-5",
+  "small_model": "anthropic/claude-haiku-4-5",
+
+  "instructions": ["INSTRUCTIONS.md"],
+
+  "permission": {
+    "edit": "ask",
+    "bash": "ask"
+  },
+
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 15000
+  },
+
+  "agent": {
+    "orquestador": {
+      "description": "Coordinador central del sistema vibecoding. Activa para CUALQUIER proyecto nuevo (web, app, juego, API). Gestiona el pipeline completo delegando a subagentes. NUNCA hace trabajo real, solo coordina.",
+      "mode": "primary",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/orquestador.md}",
+      "temperature": 0.2,
+      "steps": 50
+    },
+    "project-manager-senior": {
+      "description": "Convierte la spec de un proyecto en lista de tareas granulares con criterios de aceptacion. Fase 1.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/project-manager-senior.md}",
+      "temperature": 0.2,
+      "permission": { "edit": "deny", "bash": "deny" }
+    },
+    "ux-architect": {
+      "description": "Crea la fundacion tecnica CSS: tokens de diseno, layout, tema claro/oscuro, breakpoints. Fase 2.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/ux-architect.md}",
+      "temperature": 0.2,
+      "permission": { "edit": "deny", "bash": "deny" }
+    },
+    "ui-designer": {
+      "description": "Crea el design system visual: componentes, paleta, tipografia, estados. Trabaja sobre la fundacion del ux-architect. Fase 2.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/ui-designer.md}",
+      "temperature": 0.3,
+      "permission": { "edit": "deny", "bash": "deny" }
+    },
+    "security-engineer": {
+      "description": "Analiza amenazas con STRIDE, define headers de seguridad, checklist OWASP Top 10. Fase 2.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/security-engineer.md}",
+      "temperature": 0.1,
+      "permission": { "edit": "deny", "bash": "deny" }
+    },
+    "frontend-developer": {
+      "description": "Implementa UI web con React/Vue/TS, Tailwind, shadcn/ui. Fase 3.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/frontend-developer.md}",
+      "temperature": 0.2,
+      "permission": {
+        "edit": "allow",
+        "bash": {
+          "npm *": "allow", "npx *": "allow", "node *": "allow",
+          "mkdir *": "allow", "cp *": "allow",
+          "*": "ask"
+        }
+      }
+    },
+    "backend-architect": {
+      "description": "Implementa APIs, esquemas de DB, logica de servidor. PostgreSQL, Drizzle, Hono, tRPC. Fase 3.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/backend-architect.md}",
+      "temperature": 0.2,
+      "permission": {
+        "edit": "allow",
+        "bash": {
+          "npm *": "allow", "npx *": "allow", "node *": "allow",
+          "mkdir *": "allow", "cp *": "allow",
+          "*": "ask"
+        }
+      }
+    },
+    "rapid-prototyper": {
+      "description": "Crea MVPs funcionales rapidos. Next.js + Prisma + Supabase + shadcn/ui. Fase 3.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/rapid-prototyper.md}",
+      "temperature": 0.3,
+      "permission": {
+        "edit": "allow",
+        "bash": { "npm *": "allow", "npx *": "allow", "*": "ask" }
+      }
+    },
+    "mobile-developer": {
+      "description": "Desarrolla apps moviles iOS y Android con React Native y Expo. Fase 3.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/mobile-developer.md}",
+      "temperature": 0.2,
+      "permission": {
+        "edit": "allow",
+        "bash": { "npm *": "allow", "npx *": "allow", "expo *": "allow", "*": "ask" }
+      }
+    },
+    "game-designer": {
+      "description": "Crea el Game Design Document (GDD) completo. Fase 3.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/game-designer.md}",
+      "temperature": 0.4,
+      "permission": { "edit": "deny", "bash": "deny" }
+    },
+    "xr-immersive-developer": {
+      "description": "Implementa juegos de navegador con Canvas API, Phaser.js, PixiJS o WebGL. Fase 3.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/xr-immersive-developer.md}",
+      "temperature": 0.2,
+      "permission": {
+        "edit": "allow",
+        "bash": { "npm *": "allow", "npx *": "allow", "*": "ask" }
+      }
+    },
+    "evidence-collector": {
+      "description": "QA tarea por tarea con screenshots reales via Playwright. Valida implementacion contra spec. Fase 3.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/evidence-collector.md}",
+      "temperature": 0.1,
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "npx playwright *": "allow", "curl *": "allow",
+          "grep *": "allow", "npm run build*": "allow",
+          "*": "ask"
+        }
+      }
+    },
+    "seo-discovery": {
+      "description": "Optimiza SEO tecnico y visibilidad para motores de busqueda e IAs. Fase 4.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/seo-discovery.md}",
+      "temperature": 0.2,
+      "permission": {
+        "edit": "allow",
+        "bash": { "curl *": "allow", "grep *": "allow", "*": "ask" }
+      }
+    },
+    "api-tester": {
+      "description": "Valida endpoints de API contra spec. Cobertura, seguridad OWASP API Top 10, performance P95. Fase 4.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/api-tester.md}",
+      "temperature": 0.1,
+      "permission": {
+        "edit": "deny",
+        "bash": { "curl *": "allow", "npm run *": "allow", "*": "ask" }
+      }
+    },
+    "performance-benchmarker": {
+      "description": "Mide Core Web Vitals, tiempos de carga, bottlenecks y load testing. Fase 4.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/performance-benchmarker.md}",
+      "temperature": 0.1,
+      "permission": {
+        "edit": "deny",
+        "bash": { "npx *": "allow", "curl *": "allow", "*": "ask" }
+      }
+    },
+    "reality-checker": {
+      "description": "Gate final pre-produccion. Valida el proyecto completo contra specs con evidencia. Default NEEDS WORK. Fase 4.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/reality-checker.md}",
+      "temperature": 0.1,
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "curl *": "allow", "grep *": "allow",
+          "npx *": "allow", "npm run build*": "allow",
+          "*": "ask"
+        }
+      }
+    },
+    "brand-agent": {
+      "description": "Genera identidad visual completa (colores, tipografia, tono, specs de assets). Fase 2B.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/brand-agent.md}",
+      "temperature": 0.5,
+      "permission": {
+        "edit": "allow",
+        "bash": { "mkdir *": "allow", "*": "ask" }
+      }
+    },
+    "image-agent": {
+      "description": "Genera imagenes para proyectos web usando Gemini o HuggingFace FLUX.1-schnell. Fase 2B.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/image-agent.md}",
+      "temperature": 0.3,
+      "permission": {
+        "edit": "allow",
+        "bash": { "curl *": "allow", "mkdir *": "allow", "cp *": "allow", "*": "ask" }
+      }
+    },
+    "logo-agent": {
+      "description": "Genera logos SVG vectorizados para proyectos. FLUX.1 + vtracer. Fase 2B.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/logo-agent.md}",
+      "temperature": 0.3,
+      "permission": {
+        "edit": "allow",
+        "bash": { "curl *": "allow", "vtracer *": "allow", "mkdir *": "allow", "*": "ask" }
+      }
+    },
+    "video-agent": {
+      "description": "Genera videos cortos en loop para fondos de landing pages usando Replicate. Fase 2B.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-5",
+      "prompt": "{file:./agents/video-agent.md}",
+      "temperature": 0.3,
+      "permission": {
+        "edit": "allow",
+        "bash": { "curl *": "allow", "mkdir *": "allow", "*": "ask" }
+      }
+    },
+    "git": {
+      "description": "Hace commit y push a GitHub. Solo actua cuando el orquestador lo indica tras confirmacion del usuario. Fase 5.",
+      "mode": "subagent",
+      "model": "anthropic/claude-haiku-4-5",
+      "prompt": "{file:./agents/git.md}",
+      "temperature": 0.0,
+      "permission": {
+        "edit": "deny",
+        "bash": { "git *": "allow", "gh *": "allow", "*": "deny" }
+      }
+    },
+    "deployer": {
+      "description": "Despliega a Vercel usando CLI. Solo actua cuando el orquestador lo indica tras confirmacion del usuario. Fase 5.",
+      "mode": "subagent",
+      "model": "anthropic/claude-haiku-4-5",
+      "prompt": "{file:./agents/deployer.md}",
+      "temperature": 0.0,
+      "permission": {
+        "edit": "deny",
+        "bash": { "vercel *": "allow", "*": "deny" }
+      }
+    }
+  },
+
+  "default_agent": "orquestador",
+
+  "command": {
+    "pipeline": {
+      "template": "Activa el pipeline vibecoding para: {args}",
+      "description": "Activa el pipeline completo de 5 fases",
+      "agent": "orquestador"
+    },
+    "retomar": {
+      "template": "Retoma el proyecto {args} desde donde quedo. Ejecuta Boot Sequence.",
+      "description": "Retoma un proyecto existente",
+      "agent": "orquestador"
+    },
+    "certificar": {
+      "template": "Ejecuta Fase 4 completa: seo-discovery, api-tester, performance-benchmarker, reality-checker",
+      "description": "Ejecuta certificacion completa del proyecto",
+      "agent": "orquestador"
+    }
+  },
+
+  "mcp": {
+    "engram": {
+      "type": "local",
+      "command": ["engram", "mcp", "--tools=agent"],
+      "enabled": true,
+      "timeout": 10000
+    },
+    "context7": {
+      "type": "local",
+      "command": ["npx", "-y", "@upstash/context7-mcp"],
+      "enabled": true
+    }
+  }
+}
