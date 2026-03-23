@@ -79,10 +79,35 @@ Next.js: `app/robots.ts` exportando `MetadataRoute.Robots`. Incluir AI crawlers 
 `public/llms.txt`: descripción del proyecto, servicios, ubicación, contacto, links. Formato markdown legible por LLMs.
 `public/llms-full.txt`: versión expandida con precios, FAQ, historia.
 
-### 6. Performance SEO
-- Preload fuentes críticas: `<link rel="preload" as="font">`
+### 6. Keyword Mapping (anti-canibalizacion)
+
+Antes de escribir meta tags, crear un **mapa de keywords**:
+
+```
+Pagina           | Keyword primaria        | Keywords secundarias (2-3)
+/                | [nombre negocio/marca]  | [sector], [ubicacion]
+/servicios       | [servicio principal]    | [variante 1], [variante 2]
+/nosotros        | [equipo/historia]       | [expertise], [valores]
+/contacto        | [contacto + ubicacion]  | [telefono], [email]
+/blog/articulo-1 | [tema especifico]       | [long-tail 1], [long-tail 2]
+```
+
+**Reglas del keyword mapping:**
+- **1 keyword primaria por pagina** — NUNCA repetir la misma primaria en dos paginas
+- Si dos paginas competirian por la misma keyword → fusionar o diferenciar con long-tail
+- Keywords secundarias pueden solaparse parcialmente entre paginas, primarias NUNCA
+- El `title` tag lleva la keyword primaria al inicio: `"[Keyword] — [Nombre del sitio]"`
+- La `meta description` incluye primaria + 1 secundaria de forma natural
+- El `h1` de la pagina debe contener la keyword primaria (o una variacion natural)
+- JSON-LD `name` y `description` refuerzan las keywords sin duplicar exacto
+- `llms.txt` incluye las keywords primarias como terminos de descubrimiento
+
+**Guardar en reporte**: incluir el keyword mapping completo en `{proyecto}/seo` para que frontend-developer pueda alinear el copy.
+
+### 7. Performance SEO
+- Preload fuentes criticas: `<link rel="preload" as="font">`
 - Preload hero image (LCP): `<link rel="preload" as="image">` o `priority` en Next.js Image
-- `next/image` con `priority` para LCP automático
+- `next/image` con `priority` para LCP automatico
 
 ### 7. Semantic HTML (verificar)
 - Solo UN `<h1>` por página
@@ -149,20 +174,21 @@ Calcular al finalizar. Cada item vale puntos sobre 100:
 
 | Item | Puntos | Criterio |
 |------|--------|----------|
-| Meta tags (title, description, OG, Twitter) | 15 | Todas las páginas públicas cubiertas |
-| Canonical URLs | 3 | Todas las páginas tienen canonical |
-| JSON-LD válido | 15 | Schemas correctos para el tipo de proyecto + validación JSON |
+| Meta tags (title, description, OG, Twitter) | 12 | Todas las paginas publicas cubiertas |
+| Keyword mapping (anti-canibalizacion) | 8 | 1 keyword primaria por pagina, sin duplicados entre paginas |
+| Canonical URLs | 3 | Todas las paginas tienen canonical |
+| JSON-LD valido | 15 | Schemas correctos para el tipo de proyecto + validacion JSON |
 | FAQPage schema | 5 | Auto-detectado e implementado (0 si no hay FAQ natural) |
-| sitemap.xml | 10 | Generado con todas las rutas públicas |
-| robots.txt | 10 | AI-friendly, crawlers permitidos |
+| sitemap.xml | 10 | Generado con todas las rutas publicas |
+| robots.txt | 8 | AI-friendly, crawlers permitidos |
 | llms.txt + llms-full.txt | 10 | Datos factuales, estructurados, con precios/specs |
 | OG Image | 5 | 1200x630, generada con sharp/vercel-og |
-| Heading hierarchy | 10 | Un h1 por página, sin saltos de nivel |
+| Heading hierarchy | 8 | Un h1 por pagina, sin saltos de nivel, h1 contiene keyword primaria |
 | Performance hints | 3 | Preload hero/fonts, priority en LCP image |
 | Semantic HTML | 5 | nav, main, footer, section con aria-label, lang attr |
-| HTML Sitemap (5+ páginas) | 3 | Página /sitemap linkeada desde footer |
-| RSS Feed (si hay blog) | 2 | Feed válido en /feed.xml |
-| Validación post-impl | 5 | JSON-LD parseables, headings verificados con curl |
+| HTML Sitemap (5+ paginas) | 3 | Pagina /sitemap linkeada desde footer |
+| RSS Feed (si hay blog) | 2 | Feed valido en /feed.xml |
+| Validacion post-impl | 3 | JSON-LD parseables, headings verificados con curl |
 
 **Rangos**: A+ (95-100) | A (85-94) | B+ (75-84) | B (65-74) | C (50-64) | F (<50)
 
@@ -204,12 +230,13 @@ DIAGNÓSTICO PREVIO:
 - Score inicial estimado: {N}/100
 - Gaps encontrados: [lista]
 
-IMPLEMENTACIÓN:
+IMPLEMENTACION:
 - Archivos creados/modificados: [lista de rutas]
-- Meta tags: {N} páginas optimizadas
-- Structured data: [tipos + justificación breve]
+- Keyword mapping: {N} paginas mapeadas (0 canibalizacion)
+- Meta tags: {N} paginas optimizadas (keywords alineadas)
+- Structured data: [tipos + justificacion breve]
 - AI discovery: llms.txt + robots.txt configurados
-- FAQPage: generado/omitido (razón)
+- FAQPage: generado/omitido (razon)
 
 VALIDACIÓN:
 - JSON-LD: {N}/{N} válidos
@@ -267,7 +294,7 @@ BLOCKERS: [{N} — lista si NEEDS WORK]
 ENGRAM: {proyecto}/{mi-cajon}
 ```
 
-## Tools disponibles
+## Tools asignadas
 - Read
 - Write
 - Edit

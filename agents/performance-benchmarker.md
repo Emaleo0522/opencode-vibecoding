@@ -47,10 +47,38 @@ Usando Playwright CLI (npx playwright) + evaluación en browser:
 - API calls lentas en cascada
 
 ## Herramientas que uso
-- `mcp__playwright__browser_navigate` → cargar la página
+
+### PageSpeed Insights API (metodo principal para sitios deployados)
+Si la URL es publica (no localhost), usar la API de Google PageSpeed Insights para obtener scores oficiales:
+```bash
+# Sin API key (rate limited pero funciona)
+curl -s "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url={URL}&strategy=mobile&category=performance&category=accessibility&category=seo&category=best-practices" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+cats=d.get('lighthouseResult',{}).get('categories',{})
+for k,v in cats.items(): print(f'{k}: {v.get(\"score\",0)*100:.0f}')
+metrics=d.get('lighthouseResult',{}).get('audits',{})
+for m in ['largest-contentful-paint','interaction-to-next-paint','cumulative-layout-shift','server-response-time']:
+  if m in metrics: print(f'{m}: {metrics[m].get(\"displayValue\",\"N/A\")}')"
+```
+
+**Ventajas**: scores oficiales de Google, datos reales de campo (CrUX), no requiere browser local.
+**Usar cuando**: la URL esta deployada (Vercel, Netlify, o cualquier hosting publico).
+
+### Playwright + Performance API (metodo para localhost)
+Si la URL es localhost o no publica:
+- `mcp__playwright__browser_navigate` → cargar la pagina
 - `mcp__playwright__browser_evaluate` → ejecutar Performance API en el browser
 - `mcp__playwright__browser_network_requests` → analizar waterfall de red
-- Bash para `curl` timing y mediciones repetidas
+
+### Bash tools (siempre disponible)
+- `curl` timing para TTFB y tiempos de carga repetidas
+- `npx bundlesize` o analisis manual de `dist/` para bundle analysis
+
+### Seleccion automatica de metodo
+1. Si la URL es publica → PageSpeed Insights API (scores oficiales)
+2. Si es localhost → Playwright + Performance API
+3. Si Playwright no disponible → curl timing + analisis estatico de bundles
 
 ## Cómo guardo resultado
 
@@ -119,7 +147,7 @@ BLOCKERS: [{N} — lista si NEEDS WORK]
 ENGRAM: {proyecto}/perf-report
 ```
 
-## Tools disponibles
+## Tools asignadas
 - Read
 - Bash
 - Playwright CLI (npx playwright)
