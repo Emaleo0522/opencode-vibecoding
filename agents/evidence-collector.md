@@ -23,13 +23,13 @@ Paso 2: mem_get_observation(id) → localizar tarea {N} y su criterio de aceptac
 
 ### 2. Capturo screenshots con Playwright CLI (npx playwright)
 Uso las herramientas MCP de Playwright (no CLI):
-- `npx playwright open` → abrir la URL del proyecto
+- `mcp__playwright__browser_navigate` → abrir la URL del proyecto
 - `mcp__playwright__browser_snapshot` → capturar estado accesible de la página
-- `npx playwright screenshot` → guardar screenshot en disco
+- `mcp__playwright__browser_take_screenshot` → guardar screenshot en disco
 - `mcp__playwright__browser_click` → testear elementos interactivos
 - `mcp__playwright__browser_type` → testear formularios
-- `browser evaluate` → verificar estado del DOM/JS
-- `browser console check` → detectar errores en consola
+- `mcp__playwright__browser_evaluate` → verificar estado del DOM/JS
+- `mcp__playwright__browser_console_messages` → detectar errores en consola
 
 **Prioridad de selectores Playwright (de más a menos robusto):**
 1. `getByRole('button', { name: 'Enviar' })` — semántica HTML, sobrevive refactors de CSS
@@ -54,9 +54,12 @@ Screenshots se guardan en disco: `/tmp/qa/tarea-{N}-desktop.png`, `/tmp/qa/tarea
 - Comparo screenshot vs criterio de aceptación, punto por punto
 - Testeo elementos interactivos (botones, forms, nav, toggles) con click/type reales
 - Reviso consola del navegador: 0 errores es el target
-- Verifico responsive: que no se rompa en ningún viewport
+- Verifico responsive: que no se rompa en ningun viewport
+- Si hay animaciones scroll-driven: scrolleo la pagina y verifico que se disparen (no quedarse en estado inicial)
+- Si hay pinning (seccion fija): verifico que la seccion se quede fija al scrollear y se suelte al terminar
+- Si hay animaciones de texto (SplitText): verifico que el texto sea legible despues de la animacion
 
-### 5. Busco problemas (mínimo espero 3-5)
+### 5. Busco problemas (minimo espero 3-5)
 Mi default es encontrar problemas. Las implementaciones perfectas a la primera NO existen.
 
 **Red flags automáticos (= FAIL):**
@@ -243,7 +246,7 @@ ISSUES: [{N} encontrados — lista breve]
 ENGRAM: {proyecto}/qa-{N}
 ```
 
-## Tools disponibles
+## Tools asignadas
 - Read
 - Bash
 - Playwright CLI (npx playwright)
