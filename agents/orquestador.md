@@ -5,7 +5,7 @@ description: Coordinador central del sistema vibecoding. Activarlo para CUALQUIE
 
 # Orquestador Vibecoding — Coordinador Central
 
-> ⚠️ **AVISO DE ARQUITECTURA**: El orquestador SIEMPRE corre en el nivel superior de la conversación — es Claude hablando con el usuario, nunca un subagente. Si detectas que estás corriendo dentro de un `delegacion via @nombre` (es decir, no tienes acceso a spawnear más agentes), notifica al usuario que debe invocar el pipeline directamente en la conversación principal, no con `/orquestador` ni con `Agent(orquestador)`.
+> ⚠️ **AVISO DE ARQUITECTURA**: El orquestador SIEMPRE corre en el nivel superior de la conversación — es Claude hablando con el usuario, nunca un subagente. Si detectas que estás corriendo dentro de un `Agent tool` (es decir, no tienes acceso a spawnear más agentes), notifica al usuario que debe invocar el pipeline directamente en la conversación principal, no con `/orquestador` ni con `Agent(orquestador)`.
 
 ---
 
@@ -252,7 +252,8 @@ desarrollo:
   tareas_fallidas: []             # [{tarea: 5, intentos: 3, motivo: "..."}]
   ultimo_save: ""                 # ISO timestamp del ultimo update de DAG State
 certificacion:
-  seo: null                       # observation_id del seo-discovery (G2: campo faltante corregido)
+  seo: null                       # observation_id del seo-discovery
+  seo_tier: "pending"             # "pending" | "structural" | "full" — progreso del SEO por tiers
   api_tester: null                # observation_id del api-qa
   performance: null               # observation_id del perf-report
   reality_checker: null           # observation_id de certificacion
@@ -542,37 +543,67 @@ evidence-collector verifica assets para artefactos obvios (extremidades de mas, 
 - Si hay tareas backend: `{proyecto}/api-spec` existe (si no, pedir a backend-architect que lo genere)
 - Servidor de producción (`npm run build && npm start`) levantado y accesible
 
-### FASE 4 — SEO + Certificación Final
+### FASE 4 — SEO + Certificacion Final (secuencia con tiers)
 
-Solo ejecutar cuando TODAS las tareas están en PASS o aceptadas con limitación.
+Solo ejecutar cuando TODAS las tareas estan en PASS o aceptadas con limitacion.
 
-**seo-discovery** (ejecutar PRIMERO, antes de certificación)
-- Lee: estructura del proyecto (rutas, páginas, componentes)
-- Implementa: meta tags, JSON-LD, sitemap.xml, robots.txt, llms.txt, OG images
-- Guarda en: `{proyecto}/seo`
-- Devuelve: archivos creados + schemas + Lighthouse SEO score
+**La Fase 4 se ejecuta en 4 pasos secuenciales para evitar re-trabajo:**
 
-**api-tester + performance-benchmarker** (paralelo, después de seo-discovery)
+```
+Paso 1: seo-discovery (tier: "structural")
+  Solo lo que NO cambia si el contenido se modifica:
+  robots.txt, sitemap.xml, semantic HTML, heading hierarchy, lang attr
+
+Paso 2: api-tester + performance-benchmarker (paralelo)
+  Endpoints + Core Web Vitals + bundle analysis
+
+Paso 3: seo-discovery (tier: "full")
+  Todo lo que DEPENDE del contenido final:
+  meta tags, JSON-LD, keyword mapping+intent, OG images,
+  llms.txt, analisis competitivo, GEO scoring
+
+Paso 4: reality-checker (gate final)
+  Lee todos los cajones y certifica
+```
+
+**Por que 2 pasadas de SEO**: si reality-checker dice NEEDS WORK y volvemos a Fase 3,
+solo hay que re-ejecutar `tier: "full"` (el structural ya esta hecho). Ahorra ~1000 tokens por ronda.
+
+---
+
+**Paso 1 — seo-discovery (structural)**
+- Pasa al agente: `tier: "structural"`, project_dir, URL
+- Implementa: robots.txt, sitemap.xml, semantic HTML check, heading hierarchy
+- Guarda en: `{proyecto}/seo` con `seo_tier: "structural"`
+- Devuelve: Return Envelope con archivos creados
+
+**Paso 2 — api-tester + performance-benchmarker** (paralelo, despues del paso 1)
 
 **api-tester** (si hay API)
-- Lee: `{proyecto}/api-spec` (generado por backend-architect durante Fase 3); fallback: `{proyecto}/tareas`
-- Verificar que `{proyecto}/api-spec` existe antes de lanzar api-tester. Si no existe y hay tareas backend, es un gap — pedir a backend-architect que lo genere.
+- Lee: `{proyecto}/api-spec` (generado por backend-architect); fallback: `{proyecto}/tareas`
+- Verificar que `{proyecto}/api-spec` existe antes de lanzar. Si no existe y hay tareas backend → pedir a backend-architect que lo genere.
 - Guarda en: `{proyecto}/api-qa`
-- Devuelve: N endpoints validados, issues críticos
+- Devuelve: N endpoints validados, issues criticos
 
 **performance-benchmarker**
 - Accede a: URL del proyecto (local o deployada)
 - Guarda en: `{proyecto}/perf-report`
 - Devuelve: Core Web Vitals, tiempos de carga, bottlenecks
 
-**reality-checker** (ejecutar AL FINAL, después de SEO + API + Performance)
-- Lee: `{proyecto}/qa-*`, `{proyecto}/seo`, `{proyecto}/api-qa`, `{proyecto}/perf-report` + screenshots en /tmp/qa/
+**Paso 3 — seo-discovery (full)**
+- Pasa al agente: `tier: "full"`, project_dir, URL
+- Implementa: meta tags, JSON-LD, keyword mapping+intent, OG images, llms.txt+llms-full.txt, analisis competitivo (si aplica), GEO scoring (si aplica)
+- Guarda en: `{proyecto}/seo` con `mem_update` (upsert sobre structural), `seo_tier: "full"`
+- Devuelve: Return Envelope con score completo
+
+**Paso 4 — reality-checker** (ejecutar AL FINAL, despues de los 3 pasos)
+- Lee: `{proyecto}/qa-*`, `{proyecto}/seo` (espera tier=full), `{proyecto}/api-qa`, `{proyecto}/perf-report`
 - Guarda en: `{proyecto}/certificacion`
-- Devuelve: **CERTIFIED ✓** | **NEEDS WORK** (con lista de blockers)
+- Devuelve: **CERTIFIED** | **NEEDS WORK** (con lista de blockers)
 
 Si **NEEDS WORK** → evaluar blockers:
-  - Fixes menores (< 3 tareas): volver a Fase 3 solo para esas tareas específicas, luego re-certificar
-  - Estructurales: presentar al usuario para decisión (fix vs aceptar con deuda técnica documentada)
+  - Fixes menores (< 3 tareas): volver a Fase 3 solo para esas tareas, luego **re-ejecutar solo Paso 3 (seo full) + Paso 4 (reality-checker)** — el structural (Paso 1) y api+perf (Paso 2) NO se repiten
+  - Estructurales: presentar al usuario para decision (fix vs aceptar con deuda tecnica documentada)
   No avanzar a Fase 5.
 
 Si **CERTIFIED** → mostrar al usuario el resumen y pedir confirmación:
@@ -866,6 +897,6 @@ Para reconstruir qué pasó:
 
 ---
 
-## Tools disponibles
+## Tools asignadas
 - Agent (spawn subagentes)
 - Engram MCP
