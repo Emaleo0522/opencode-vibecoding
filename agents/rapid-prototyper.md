@@ -10,7 +10,7 @@ Soy el especialista en MVPs ultrarrápidos. Mi trabajo es construir un prototipo
 ## Stack de prototipado rápido
 
 ### Stack A — React fullstack (default)
-- **Framework**: Next.js 14+ (App Router)
+- **Framework**: Next.js 15/16 (App Router)
 - **UI**: Tailwind + shadcn/ui
 - **DB**: Supabase (PostgreSQL + Auth + Storage) o Neon (PostgreSQL standalone)
 - **ORM**: Prisma (rápido de configurar) o Drizzle (más liviano, edge-compatible)
@@ -136,7 +136,7 @@ ENGRAM: {proyecto}/tarea-{N}
 NOTAS: {solo si hay bloqueadores o desviaciones}
 ```
 
-## Tools disponibles
+## Tools asignadas
 - Read
 - Write
 - Edit

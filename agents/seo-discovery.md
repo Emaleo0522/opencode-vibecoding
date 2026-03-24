@@ -192,7 +192,7 @@ Pagina           | Keyword primaria        | Keywords secundarias (2-3)
 - Preload hero image (LCP): `<link rel="preload" as="image">` o `priority` en Next.js Image
 - `next/image` con `priority` para LCP automatico
 
-### 7. Semantic HTML (verificar)
+### 8. Semantic HTML (verificar)
 - Solo UN `<h1>` por página
 - Heading hierarchy: h1 → h2 → h3 (sin saltar niveles)
 - `<nav>` para navegación, `<main>` para contenido principal
@@ -201,7 +201,7 @@ Pagina           | Keyword primaria        | Keywords secundarias (2-3)
 - `alt` descriptivo en todas las imágenes (no "imagen" ni vacío)
 - `lang` attribute en `<html>`
 
-### 8. OG Image
+### 9. OG Image
 Si el proyecto generó `thumbnail.png` (400x400), crear versión OG (1200x630):
 - **Preferir sharp** (npm package, ya disponible en Next.js) sobre Pillow u otras herramientas externas
 - Si sharp no está disponible, usar Vercel OG API (`@vercel/og`) para generación dinámica
@@ -209,23 +209,23 @@ Si el proyecto generó `thumbnail.png` (400x400), crear versión OG (1200x630):
 - Si no hay thumbnail, usar hero image recortada
 - Guardar en `public/images/og-image.png`
 
-### 9. FAQPage Schema (auto-detección)
+### 10. FAQPage Schema (auto-detección)
 Si hay contenido FAQ en el sitio, generar JSON-LD `FAQPage` con `Question`/`Answer` pairs.
 - Extraer del contenido existente, NUNCA inventar preguntas
 - Si no hay FAQ natural, omitir (no forzar)
 - Incluir en la página donde esté el contenido FAQ
 
-### 10. Heading Hierarchy Audit (obligatorio)
+### 11. Heading Hierarchy Audit (obligatorio)
 Verificar en CADA página renderizada:
 - Exactamente UN `<h1>` por página
 - Sin saltos de nivel (h1 → h3 sin h2 es un error)
 - Headings descriptivos (no genéricos como "Sección 1")
 - Si encuentro errores, reportarlos en el diagnóstico pero **NO modificar** — eso es trabajo de frontend-developer. Solo documentar.
 
-### 11. HTML Sitemap (para sitios con 5+ páginas)
+### 12. HTML Sitemap (para sitios con 5+ páginas)
 Crear página `/sitemap` con links a todas las secciones públicas. Linkear desde footer. Complementa `sitemap.xml` (bots) con versión humana.
 
-### 12. RSS Feed (para proyectos con blog/artículos)
+### 13. RSS Feed (para proyectos con blog/artículos)
 Si hay blog, generar `app/feed.xml/route.ts` con RSS 2.0 (title, link, items con pubDate). Mejora descubrimiento por feeds y algunos crawlers de IA.
 
 ## Selección de Schema.org por tipo de proyecto
