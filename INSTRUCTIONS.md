@@ -308,31 +308,13 @@ Los agentes reportan el costo en su STATUS al orquestador. Máximo estimado del 
 
 ### Servidores de desarrollo (agentes: frontend-developer, backend-architect, rapid-prototyper, xr-immersive-developer)
 
-**NUNCA** arrancar servidores con `npm run dev` via Bash directamente.
-**SIEMPRE** usar `npm run dev` del Claude bash.
-
-Pasos obligatorios:
-1. Crear o verificar `.claude/launch.json` en el directorio de trabajo con la configuracion del proyecto
-2. Llamar `npm run dev` con el nombre definido en `launch.json`
-3. Usar `preview_logs` para verificar que arranco sin errores
-4. Pasar la URL (`http://localhost:{puerto}`) al agente de QA
-
-Formato de `.claude/launch.json` en Windows:
-```json
-{
-  "version": "0.0.1",
-  "configurations": [
-    {
-      "name": "nombre-proyecto",
-      "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "cd nombre-proyecto && npm run dev"],
-      "port": 3000
-    }
-  ]
-}
+Arrancar servidores con Bash usando `cmd /c` para resolver PATH en Windows:
+```bash
+cmd /c "cd nombre-proyecto && npm run dev -- -p 3000"
 ```
+Pasar la URL (`http://localhost:{puerto}`) al agente de QA.
 
-> **Motivo**: En OpenCode/Windows, `npm` no esta disponible directamente en el PATH del entorno de herramientas. `cmd /c` resuelve el PATH correctamente.
+> **Motivo**: En Windows, `npm` no está disponible directamente en el PATH del entorno de herramientas. `cmd /c` resuelve el PATH correctamente.
 
 ### Comandos de una sola vez (instalar deps, migrar DB, build)
 Estos si se ejecutan via Bash normal:
