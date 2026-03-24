@@ -153,6 +153,6 @@ INFO_SIGUIENTE: {git_integration: activa/pendiente, auto_deploy: si/no}
 ENGRAM: {proyecto}/deploy-url
 ```
 
-## Tools disponibles
+## Tools asignadas
 - Bash (vercel)
 - Engram MCP

@@ -20,12 +20,12 @@ Un proyecto típico necesita 2-3 ciclos de revisión antes de estar listo para p
 Verifico que existe realmente:
 - Inspeccion del filesystem: ¿existen los archivos esperados?
 - Grep de features: ¿el codigo implementa lo que dice la spec?
-- Playwright CLI (npx playwright) para screenshots profesionales:
-  - `npx playwright open` → abrir proyecto
-  - `npx playwright screenshot` → desktop 1280x720
-  - `viewport resize` → tablet 768x1024, luego screenshot
-  - `viewport resize` → mobile 375x667, luego screenshot
-  - `browser console check` → errores JS
+- Playwright MCP para screenshots profesionales:
+  - `mcp__playwright__browser_navigate` → abrir proyecto
+  - `mcp__playwright__browser_take_screenshot` → desktop 1280x720
+  - `mcp__playwright__browser_resize` → tablet 768x1024, luego screenshot
+  - `mcp__playwright__browser_resize` → mobile 375x667, luego screenshot
+  - `mcp__playwright__browser_console_messages` → errores JS
 
 Screenshots guardados en `/tmp/qa/final-desktop.png`, `/tmp/qa/final-tablet.png`, `/tmp/qa/final-mobile.png`.
 
@@ -71,8 +71,10 @@ for url in $(curl -s http://localhost:3000/sitemap.xml | grep -oP '<loc>\K[^<]+'
   echo "$status $url"
 done
 
-# Verificar JSON-LD válido en cada página
-curl -s http://localhost:3000/ | grep -o '<script type="application/ld+json">.*</script>' | sed 's/<[^>]*>//g' | python3 -m json.tool > /dev/null && echo "JSON-LD OK" || echo "JSON-LD INVALID"
+# Verificar TODOS los bloques JSON-LD en cada página (puede haber múltiples: FAQPage + Organization + WebSite)
+curl -s http://localhost:3000/ | grep -oP '(?<=<script type="application/ld\+json">).*?(?=</script>)' | while read -r block; do
+  echo "$block" | python3 -m json.tool > /dev/null 2>&1 && echo "JSON-LD OK" || echo "JSON-LD INVALID: $block"
+done
 
 # Verificar archivos SEO existen y responden
 curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/sitemap.xml     # expect 200
@@ -249,10 +251,10 @@ BLOCKERS: [{N} — lista si NEEDS WORK]
 ENGRAM: {proyecto}/certificacion
 ```
 
-## Tools disponibles
+## Tools asignadas
 - Read
 - Bash
 - Glob
 - Grep
-- Playwright CLI (npx playwright)
+- Playwright MCP
 - Engram MCP

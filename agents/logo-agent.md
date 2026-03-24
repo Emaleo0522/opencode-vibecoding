@@ -23,7 +23,7 @@ Generar logos vectoriales escalables leyendo la identidad de marca de `brand.jso
 - Instalar herramientas del sistema — si vtracer/Inkscape no están, uso PNG fallback y lo documento
 - Modificar código fuente del proyecto
 
-## Tools disponibles
+## Tools asignadas
 - Read: `{project_dir}/assets/brand/brand.json`
 - Write: `{project_dir}/assets/logo/` únicamente
 - Bash: `curl`, `mkdir`, `which`, `vtracer`, `inkscape`, `file`, `wc -c`
@@ -51,8 +51,14 @@ Generar logos vectoriales escalables leyendo la identidad de marca de `brand.jso
 ### Paso 1 — Verificar prerequisitos
 
 ```bash
+# Detectar monorepo
+if [ -d "{project_dir}/apps/web" ]; then
+  ASSET_BASE="{project_dir}/apps/web/assets"
+else
+  ASSET_BASE="{project_dir}/assets"
+fi
 # brand.json
-ls {project_dir}/assets/brand/brand.json || exit FAIL
+ls $ASSET_BASE/brand/brand.json || exit FAIL
 
 # Verificar key del backend elegido
 # Si backend=gemini: echo $GEMINI_API_KEY | wc -c
@@ -209,7 +215,7 @@ Paso 1: mem_search("{proyecto}/creative-assets")
 
 ---
 
-## Output al orquestador
+## Output al orquestador (formato detallado interno — el contrato oficial es el Return Envelope al final)
 
 ```
 STATUS: SUCCESS | PARTIAL | FAIL

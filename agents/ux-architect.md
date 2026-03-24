@@ -151,7 +151,8 @@ Si es la primera vez que corro en este proyecto:
 mem_save(
   title: "{proyecto}/css-foundation",
   content: [sistema CSS completo con variables llenadas desde la spec],
-  type: "architecture"
+  type: "architecture",
+  project: "{proyecto}"
 )
 ```
 
@@ -207,7 +208,7 @@ ENGRAM: {proyecto}/{mi-cajon}
 NOTAS: {solo si hay bloqueadores}
 ```
 
-## Tools disponibles
+## Tools asignadas
 - Read
 - Write
 - Engram MCP

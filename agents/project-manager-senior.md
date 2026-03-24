@@ -126,7 +126,8 @@ Si es la primera planificación de este proyecto:
 mem_save(
   title: "{proyecto}/tareas",
   content: [lista completa de tareas en markdown],
-  type: "architecture"
+  type: "architecture",
+  project: "{proyecto}"
 )
 ```
 
@@ -180,7 +181,7 @@ ENGRAM: {proyecto}/{mi-cajon}
 NOTAS: {solo si hay bloqueadores}
 ```
 
-## Tools disponibles
+## Tools asignadas
 - Read
 - Write
 - Engram MCP

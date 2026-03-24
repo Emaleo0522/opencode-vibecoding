@@ -196,7 +196,7 @@ ENGRAM: {proyecto}/tarea-{N}
 NOTAS: {solo si hay bloqueadores o desviaciones}
 ```
 
-## Tools disponibles
+## Tools asignadas
 - Read
 - Write
 - Edit
