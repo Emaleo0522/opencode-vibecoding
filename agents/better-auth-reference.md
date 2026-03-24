@@ -363,3 +363,91 @@ export const auth = betterAuth({
 | Hono API | URL directa o adapter | toHonoHandler |
 
 Siempre preferir Better Auth sobre Clerk, Supabase Auth o JWT custom para proyectos nuevos.
+
+---
+
+## Better Auth + Supabase + Vercel + Next.js 16 (validado en producción)
+
+### Driver de DB: postgres.js, NUNCA pg
+- Usar `postgres` (postgres.js) — paquete npm `postgres`. Es pure JS, sin bindings nativos.
+- **NUNCA usar `pg`** (node-postgres) en Vercel serverless — usa bindings nativos de C++ que no existen en el runtime de Vercel.
+- Instalar: `npm install postgres drizzle-orm better-auth`
+
+### Conexión a Supabase desde Vercel: Transaction Pooler obligatorio
+- **Vercel es IPv4-only**. La conexión directa de Supabase (`db.xxx.supabase.co:5432`) es IPv6. No funciona.
+- **SIEMPRE usar el Transaction Pooler** (puerto 6543): `postgresql://postgres.PROJECT_REF:PASSWORD@aws-X-REGION.pooler.supabase.com:6543/postgres`
+- **Verificar el host SIEMPRE en Supabase dashboard** → botón Connect → pestaña ORMs. El número de host varía por proyecto (`aws-0`, `aws-1`, `aws-2`...). NO asumir.
+- **`prepare: false` obligatorio**: pgbouncer (Transaction Pooler) no soporta prepared statements. Sin esto, Better Auth falla silenciosamente con 500 y body vacío.
+
+### Route handler: dynamic imports + clean request
+Next.js 16 usa Turbopack que bundlea incorrectamente los módulos de DB con imports estáticos. Patrón obligatorio:
+
+```typescript
+// app/api/auth/[...all]/route.ts
+export const dynamic = "force-dynamic";
+
+let _auth: any = null;
+
+async function getAuth() {
+  if (_auth) return _auth;
+  const { betterAuth } = await import("better-auth");
+  const { drizzleAdapter } = await import("better-auth/adapters/drizzle");
+  const { drizzle } = await import("drizzle-orm/postgres-js");
+  const postgres = (await import("postgres")).default;
+  const schema = await import("@/lib/schema");
+
+  const client = postgres(process.env.DATABASE_URL!, {
+    ssl: "require", max: 1, idle_timeout: 20, connect_timeout: 10, prepare: false,
+  });
+  const db = drizzle(client, { schema });
+
+  _auth = betterAuth({
+    baseURL: process.env.BETTER_AUTH_URL,
+    secret: process.env.BETTER_AUTH_SECRET,
+    database: drizzleAdapter(db, { provider: "pg" }),
+    emailAndPassword: { enabled: true },
+    // ... resto de config
+  });
+  return _auth;
+}
+
+// Next.js 16 pasa Request objects con propiedades internas que Better Auth
+// no maneja. Reconstruir un Request limpio con solo los headers necesarios.
+function toCleanRequest(req: Request, body?: string | null): Request {
+  const url = new URL(req.url);
+  const cleanUrl = (process.env.BETTER_AUTH_URL || "") + url.pathname + url.search;
+  const headers = new Headers();
+  headers.set("content-type", req.headers.get("content-type") || "application/json");
+  const cookie = req.headers.get("cookie");
+  if (cookie) headers.set("cookie", cookie);
+  const origin = req.headers.get("origin");
+  if (origin) headers.set("origin", origin);
+  return new Request(cleanUrl, { method: req.method, headers, body });
+}
+
+export async function GET(req: Request) {
+  const auth = await getAuth();
+  return auth.handler(toCleanRequest(req));
+}
+
+export async function POST(req: Request) {
+  const auth = await getAuth();
+  const body = await req.text();
+  return auth.handler(toCleanRequest(req, body));
+}
+```
+
+### Schema Drizzle para Better Auth
+Las tablas de Better Auth usan `text` como tipo de ID y columnas en camelCase. Crear `lib/schema.ts` con pgTable para: `user`, `session`, `account`, `verification`. Mapear exactamente a las columnas que Better Auth crea (emailVerified, createdAt, updatedAt, etc.).
+
+### Checklist rápido
+- [ ] Driver: `postgres` (postgres.js), no `pg`
+- [ ] URL: Transaction Pooler (`:6543`), verificada en dashboard
+- [ ] `prepare: false` en postgres client
+- [ ] Dynamic imports (`await import(...)`) en route handler
+- [ ] `export const dynamic = "force-dynamic"` en route
+- [ ] `toCleanRequest()` para reconstruir Request limpio
+- [ ] Schema Drizzle con tablas de Better Auth
+- [ ] `BETTER_AUTH_URL` en Vercel = URL de producción
+- [ ] `NEXT_PUBLIC_APP_URL` en Vercel = URL de producción
+- [ ] `getSessionCookie` en proxy.ts necesita `cookiePrefix` si se usa prefix custom

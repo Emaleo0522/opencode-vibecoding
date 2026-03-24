@@ -176,90 +176,9 @@ El orquestador decide el stack en Fase 1 basándose en los requisitos. No hay st
 - **Migración NO es automática**: siempre agregar `"migrate": "npx @better-auth/cli migrate"` al `package.json` y ejecutarlo antes del primer `npm run dev`
 - **Next.js 16+**: usar `proxy.ts` con `export async function proxy()` — el archivo `middleware.ts` está deprecado
 
-### Better Auth + Supabase + Vercel + Next.js 16 (validado en producción)
-
-#### Driver de DB: postgres.js, NUNCA pg
-- Usar `postgres` (postgres.js) — paquete npm `postgres`. Es pure JS, sin bindings nativos.
-- **NUNCA usar `pg`** (node-postgres) en Vercel serverless — usa bindings nativos de C++ que no existen en el runtime de Vercel.
-- Instalar: `npm install postgres drizzle-orm better-auth`
-
-#### Conexión a Supabase desde Vercel: Transaction Pooler obligatorio
-- **Vercel es IPv4-only**. La conexión directa de Supabase (`db.xxx.supabase.co:5432`) es IPv6. No funciona.
-- **SIEMPRE usar el Transaction Pooler** (puerto 6543): `postgresql://postgres.PROJECT_REF:PASSWORD@aws-X-REGION.pooler.supabase.com:6543/postgres`
-- **Verificar el host SIEMPRE en Supabase dashboard** → botón Connect → pestaña ORMs. El número de host varía por proyecto (`aws-0`, `aws-1`, `aws-2`...). NO asumir.
-- **`prepare: false` obligatorio**: pgbouncer (Transaction Pooler) no soporta prepared statements. Sin esto, Better Auth falla silenciosamente con 500 y body vacío.
-
-#### Route handler: dynamic imports + clean request
-Next.js 16 usa Turbopack que bundlea incorrectamente los módulos de DB con imports estáticos. Patrón obligatorio:
-
-```typescript
-// app/api/auth/[...all]/route.ts
-export const dynamic = "force-dynamic";
-
-let _auth: any = null;
-
-async function getAuth() {
-  if (_auth) return _auth;
-  const { betterAuth } = await import("better-auth");
-  const { drizzleAdapter } = await import("better-auth/adapters/drizzle");
-  const { drizzle } = await import("drizzle-orm/postgres-js");
-  const postgres = (await import("postgres")).default;
-  const schema = await import("@/lib/schema");
-
-  const client = postgres(process.env.DATABASE_URL!, {
-    ssl: "require", max: 1, idle_timeout: 20, connect_timeout: 10, prepare: false,
-  });
-  const db = drizzle(client, { schema });
-
-  _auth = betterAuth({
-    baseURL: process.env.BETTER_AUTH_URL,
-    secret: process.env.BETTER_AUTH_SECRET,
-    database: drizzleAdapter(db, { provider: "pg" }),
-    emailAndPassword: { enabled: true },
-    // ... resto de config
-  });
-  return _auth;
-}
-
-// Next.js 16 pasa Request objects con propiedades internas que Better Auth
-// no maneja. Reconstruir un Request limpio con solo los headers necesarios.
-function toCleanRequest(req: Request, body?: string | null): Request {
-  const url = new URL(req.url);
-  const cleanUrl = (process.env.BETTER_AUTH_URL || "") + url.pathname + url.search;
-  const headers = new Headers();
-  headers.set("content-type", req.headers.get("content-type") || "application/json");
-  const cookie = req.headers.get("cookie");
-  if (cookie) headers.set("cookie", cookie);
-  const origin = req.headers.get("origin");
-  if (origin) headers.set("origin", origin);
-  return new Request(cleanUrl, { method: req.method, headers, body });
-}
-
-export async function GET(req: Request) {
-  const auth = await getAuth();
-  return auth.handler(toCleanRequest(req));
-}
-
-export async function POST(req: Request) {
-  const auth = await getAuth();
-  const body = await req.text();
-  return auth.handler(toCleanRequest(req, body));
-}
-```
-
-#### Schema Drizzle para Better Auth
-Las tablas de Better Auth usan `text` como tipo de ID y columnas en camelCase. Crear `lib/schema.ts` con pgTable para: `user`, `session`, `account`, `verification`. Mapear exactamente a las columnas que Better Auth crea (emailVerified, createdAt, updatedAt, etc.).
-
-#### Checklist rápido
-- [ ] Driver: `postgres` (postgres.js), no `pg`
-- [ ] URL: Transaction Pooler (`:6543`), verificada en dashboard
-- [ ] `prepare: false` en postgres client
-- [ ] Dynamic imports (`await import(...)`) en route handler
-- [ ] `export const dynamic = "force-dynamic"` en route
-- [ ] `toCleanRequest()` para reconstruir Request limpio
-- [ ] Schema Drizzle con tablas de Better Auth
-- [ ] `BETTER_AUTH_URL` en Vercel = URL de producción
-- [ ] `NEXT_PUBLIC_APP_URL` en Vercel = URL de producción
+### Better Auth + Supabase + Vercel + Next.js 16
+- **Referencia completa con código y checklist**: `~/.config/opencode/agents/better-auth-reference.md` § "Better Auth + Supabase + Vercel"
+- **Reglas clave**: postgres.js (no pg), Transaction Pooler (puerto 6543), `prepare: false`, dynamic imports en route handler, `toCleanRequest()` para Request limpio, `getSessionCookie` con `cookiePrefix`
 
 ## Agentes creativos — Assets visuales
 Pipeline de generación de assets (logos, imágenes, videos) para proyectos web.
@@ -356,16 +275,8 @@ Los agentes reportan el costo en su STATUS al orquestador. Máximo estimado del 
   ```
 - **Admin panel en sitio estático**: agregar en `vercel.json` un header `X-Robots-Tag: noindex, nofollow` + `Cache-Control: no-store` para la ruta `/admin.html` — evita que Google indexe el panel y que browsers cacheen la sesión
 
-### PocketBase (validado en producción)
-- **Boolean `required: true` rompe toggles**: Go trata `false` como zero value → falla validación. Campos booleanos que se van a alternar entre `true`/`false` NUNCA deben tener `required: true` en el schema.
-- **listRule/viewRule deben diferenciar admin vs público**: si el admin panel necesita ver ítems ocultos, usar `published = true || @request.auth.collectionName = "admin_collection"`. Sin esto, el admin queda ciego a los registros ocultados.
-- **Siempre exponer `errBody.data` en errores de API**: el `message` top-level es genérico ("Failed to update record."). El detalle real (qué campo falla, qué código de validación) está en `errBody.data`. Loguear ambos al debuggear.
-- **Superadmin auth cambió en v0.23+**: el endpoint `/api/admins/auth-with-password` devuelve 404 en versiones nuevas. Usar `/api/collections/_superusers/auth-with-password` con el mismo body `{identity, password}`.
-- **Reglas de coleccion son independientes por operacion**: create/list/update/delete pueden tener reglas distintas. Una coleccion puede permitir create a usuarios pero tener update en null (solo admin). Verificar las 4 reglas al debuggear 400/403.
-- **NULL vs empty string en rules**: `NULL` listRule = solo admins (403). `""` = acceso publico. Son distintos en SQLite — verificar con `QUOTE(listRule)`.
-- **Sort fields**: `sort=campo1,campo2` multi-campo retorna 400 en muchas versiones. `sort=-created` tambien puede fallar. Solucion segura: `sort=-id` (ULID-based, time-sortable desde v0.16+).
-- **PocketBase en Docker**: no tiene `sqlite3` dentro del container. Siempre `docker stop` antes de editar `.db` directamente.
-- **HTTPS obligatorio**: si frontend es HTTPS, backend DEBE ser HTTPS. Ver seccion "DevOps VPS" para soluciones.
+### PocketBase
+- **Referencia completa**: `~/.config/opencode/agents/pocketbase-reference.md` — gotchas de boolean fields, rules, auth, sort, Docker, HTTPS
 
 ### CSS Patterns (validados en producción)
 - **`::after` para background images**: mejor que un div extra. El pseudo-elemento va con `position: absolute; inset: 0; z-index: 0; pointer-events: none`. Los hijos del contenedor necesitan `position: relative; z-index: 1`.
@@ -392,28 +303,8 @@ Los agentes reportan el costo en su STATUS al orquestador. Máximo estimado del 
 - JSON-LD: todos los bloques deben ser parseables (validar con `python3 -m json.tool`)
 - **Mixed Content check obligatorio**: si el frontend va a HTTPS (Vercel, Netlify, etc.), verificar SIEMPRE que el backend también tiene HTTPS antes de pushear. El error es silencioso — la app cae al fallback sin mostrar nada en la UI.
 
-### DevOps VPS (validado en producción con Oracle Cloud)
-
-#### Mixed Content HTTPS — static site HTTPS + backend HTTP
-Browsers bloquean TODAS las requests HTTP desde páginas HTTPS. Afecta `fetch()`, `img src`, `video src`, `XMLHttpRequest`.
-
-**Soluciones (de más simple a más permanente)**:
-1. **nginx + Let's Encrypt** (requiere puertos 80/443 accesibles + dominio): Permanente, sin dependencias externas. Usar `sslip.io` si no hay dominio propio: `161-153-203-83.sslip.io` resuelve a `161.153.203.83`.
-2. **Cloudflare Quick Tunnel** (sin cuenta ni dominio): `cloudflared tunnel --url http://localhost:PORT` → URL `*.trycloudflare.com`. Cambio en cada restart — solo para fix temporal.
-3. **Cloudflare Named Tunnel** (requiere cuenta + dominio): Permanente, conecta outbound, no necesita puertos abiertos en el firewall.
-
-#### Oracle Cloud Free Tier — Dos capas de firewall independientes
-Oracle tiene DOS firewalls que **ambos** deben permitir el puerto:
-- **Capa 1 — UFW** (dentro de la VM, configurable vía SSH): `sudo ufw allow 80/tcp`
-- **Capa 2 — VCN Security List** (nivel de red, solo en Oracle Cloud console): Networking → VCNs → Security Lists → Add Ingress Rule → CIDR `0.0.0.0/0`, TCP, puerto
-- **Diagnóstico**: si `ufw allow` no sirve → es VCN. Test: `curl http://IP:PORT` desde fuera — si da 000 (timeout), es VCN; si da error de conexión, es UFW.
-- **Workaround sin tocar VCN**: Cloudflare Tunnel (conecta outbound, no necesita inbound ports)
-
-#### nginx como reverse proxy + Let's Encrypt
-```bash
-sudo apt-get install -y nginx certbot python3-certbot-nginx
-sudo certbot --nginx -d MI-DOMINIO.sslip.io --non-interactive --agree-tos -m email@example.com
-```
+### DevOps VPS
+- **Referencia completa**: `~/.config/opencode/agents/devops-vps-reference.md` — Mixed Content HTTPS, Oracle Cloud firewalls, nginx + Let's Encrypt
 
 ## Overrides Windows — Diferencias con Linux/OpenCode
 
