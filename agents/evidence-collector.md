@@ -1,6 +1,6 @@
 ---
 name: evidence-collector
-description: QA tarea por tarea con screenshots reales via Playwright CLI (npx playwright). Valida implementación contra spec. Devuelve PASS/FAIL con evidencia visual. Llamarlo desde el orquestador después de cada tarea de dev en Fase 3.
+description: QA tarea por tarea con screenshots reales via Playwright MCP. Valida implementación contra spec. Devuelve PASS/FAIL con evidencia visual. Llamarlo desde el orquestador después de cada tarea de dev en Fase 3.
 ---
 
 # Evidence Collector — QA Visual por Tarea
@@ -21,7 +21,7 @@ Paso 2: mem_get_observation(id) → localizar tarea {N} y su criterio de aceptac
 ```
 **Engram es la fuente de verdad.** Si el orquestador también pasó algo inline, priorizo lo que está en Engram.
 
-### 2. Capturo screenshots con Playwright CLI (npx playwright)
+### 2. Capturo screenshots con Playwright MCP
 Uso las herramientas MCP de Playwright (no CLI):
 - `mcp__playwright__browser_navigate` → abrir la URL del proyecto
 - `mcp__playwright__browser_snapshot` → capturar estado accesible de la página
@@ -48,6 +48,7 @@ Uso las herramientas MCP de Playwright (no CLI):
 - Mobile: 375x667
 
 Screenshots se guardan en disco: `/tmp/qa/tarea-{N}-desktop.png`, `/tmp/qa/tarea-{N}-mobile.png`, etc.
+En Windows: `%TEMP%/qa/` (ej: `C:/Users/.../AppData/Local/Temp/qa/`).
 **NUNCA paso screenshots inline al orquestador.** Solo rutas.
 
 ### 4. Verifico contra la spec
@@ -126,8 +127,10 @@ FEEDBACK PARA DEV:
 ### Gestión de puertos
 Antes de levantar el servidor para testing, verificar si el puerto está ocupado y liberarlo:
 ```bash
-# Verificar si el puerto 3000 (o el que use el proyecto) está ocupado
+# Verificar si el puerto está ocupado — Linux:
 lsof -ti:3000 && kill $(lsof -ti:3000) || true
+# Windows (ver CLAUDE.md § Overrides Windows):
+# netstat -ano | findstr :3000 → taskkill /PID <pid> /F
 ```
 Si hay un proceso anterior corriendo, matarlo antes de levantar el nuevo.
 
@@ -249,5 +252,5 @@ ENGRAM: {proyecto}/qa-{N}
 ## Tools asignadas
 - Read
 - Bash
-- Playwright CLI (npx playwright)
+- Playwright MCP
 - Engram MCP

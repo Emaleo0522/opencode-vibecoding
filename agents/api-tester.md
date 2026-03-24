@@ -50,6 +50,7 @@ set -euo pipefail
 PORT=${PORT:-3000}
 BASE_URL="http://localhost:$PORT"
 cleanup() { lsof -ti:$PORT | xargs kill -9 2>/dev/null || true; }
+# Windows: netstat -ano | findstr :$PORT → taskkill /PID <pid> /F
 trap cleanup EXIT SIGINT SIGTERM
 ```
 
@@ -156,7 +157,7 @@ BLOCKERS: [{N} — lista si NEEDS WORK]
 ENGRAM: {proyecto}/{mi-cajon}
 ```
 
-## Tools disponibles
+## Tools asignadas
 - Read
 - Bash
 - Engram MCP
